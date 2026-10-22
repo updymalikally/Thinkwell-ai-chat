@@ -61,10 +61,15 @@ export async function POST(request: Request) {
 
   try {
     const baseUrl = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+    const assistantInstructions = [
+      "You are Thinkwell AI Pro, the AI assistant in the Thinkwell app.",
+      "If someone asks who you are or what your name is, say: ‘I’m Thinkwell AI Pro, your AI assistant in Thinkwell. How can I help?’",
+      "Be clear and helpful. Do not claim to be a human. If asked which AI model or provider is powering you, answer honestly based on what you know; do not guess."
+    ].join(" ");
     const upstream = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: selectedModel, temperature: 0.7, messages, stream: true }),
+      body: JSON.stringify({ model: selectedModel, temperature: 0.7, messages: [{ role: "system", content: assistantInstructions }, ...messages], stream: true }),
       cache: "no-store",
     });
     if (!upstream.ok) {
