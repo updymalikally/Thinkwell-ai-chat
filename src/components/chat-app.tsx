@@ -22,7 +22,22 @@ const suggestions = [
   { icon: "◈", tone: "lilac", title: "Create an image", detail: "Make a man wearing a suit", prompt: "A polished portrait of a man wearing a navy suit, white shirt, and tie, in a softly lit modern office", image: true },
 ];
 
-export default function ChatApp({ userName }: { userName: string }) {
+type ActionIconName = "more" | "edit" | "pin" | "share" | "archive" | "restore" | "trash";
+
+function ActionIcon({ name }: { name: ActionIconName }) {
+  const paths: Record<ActionIconName, React.ReactNode> = {
+    more: <><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,
+    edit: <><path d="m15 5 4 4"/><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="M13.5 6.5l4 4"/></>,
+    pin: <><path d="M16 3 8 11"/><path d="m9 7 8 8"/><path d="m5 12 7 7 2-6 5-5-6-2-8 6Z"/><path d="m12 19-1 3"/></>,
+    share: <><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.6M8.2 13.2l7.6 4.6"/></>,
+    archive: <><path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/></>,
+    restore: <><path d="M4 7h16v13H4z"/><path d="M3 4h18v3H3zM9 11h6"/><path d="M8 15h3"/></>,
+    trash: <><path d="M4 7h16M10 11v6M14 11v6"/><path d="m6 7 1 13h10l1-13M9 7V4h6v3"/></>,
+  };
+  return <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}
+
+export default function ChatApp({ userName, userEmail }: { userName: string; userEmail: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -35,6 +50,13 @@ export default function ChatApp({ userName }: { userName: string }) {
   const [toast, setToast] = useState("");
   const [apiReady, setApiReady] = useState<boolean | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(userName);
+  const [nameDraft, setNameDraft] = useState(userName);
+  const [nameBusy, setNameBusy] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [accountNotice, setAccountNotice] = useState("");
+  const [accountError, setAccountError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -46,9 +68,45 @@ export default function ChatApp({ userName }: { userName: string }) {
   const conversation = useRef<HTMLDivElement>(null);
   const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
 
+  async function saveName(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = nameDraft.trim();
+    if (!name || name === displayName) return;
+    setNameBusy(true); setAccountError(""); setAccountNotice("");
+    try {
+      const result = await authClient.updateUser({ name });
+      if (result.error) throw new Error(result.error.message || "Could not update your name.");
+      setDisplayName(name);
+      setAccountNotice("Your name has been updated.");
+    } catch (error) { setAccountError(error instanceof Error ? error.message : "Could not update your name."); }
+    finally { setNameBusy(false); }
+  }
+
+  async function savePassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const currentPassword = String(data.get("currentPassword") || "");
+    const newPassword = String(data.get("newPassword") || "");
+    const confirmPassword = String(data.get("confirmPassword") || "");
+    setAccountError(""); setAccountNotice("");
+    if (newPassword.length < 8) { setAccountError("Your new password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setAccountError("The new passwords do not match."); return; }
+    setPasswordBusy(true);
+    try {
+      const result = await authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true });
+      if (result.error) throw new Error(result.error.message || "Could not update your password.");
+      form.reset();
+      setAccountNotice("Your password has been updated. Other sessions were signed out.");
+    } catch (error) { setAccountError(error instanceof Error ? error.message : "Could not update your password."); }
+    finally { setPasswordBusy(false); }
+  }
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("thinkwell-theme");
-    if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+    const initialTheme = savedTheme === "dark" ? "dark" : "light";
+    setTheme(initialTheme);
+    document.documentElement.dataset.theme = initialTheme;
     setPinnedIds(JSON.parse(localStorage.getItem("thinkwell-pinned") || "[]"));
     setArchivedIds(JSON.parse(localStorage.getItem("thinkwell-archived") || "[]"));
     void fetch("/api/config").then(response => response.json()).then(config => {
@@ -60,10 +118,6 @@ export default function ChatApp({ userName }: { userName: string }) {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("thinkwell-theme", theme);
-  }, [theme]);
   useEffect(() => { if (conversation.current) conversation.current.scrollTop = conversation.current.scrollHeight; }, [messages, busy]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -76,6 +130,12 @@ export default function ChatApp({ userName }: { userName: string }) {
   function notify(text: string) {
     setToast(text);
     window.setTimeout(() => setToast(""), 2800);
+  }
+
+  function changeTheme(nextTheme: "light" | "dark") {
+    document.documentElement.dataset.theme = nextTheme;
+    localStorage.setItem("thinkwell-theme", nextTheme);
+    setTheme(nextTheme);
   }
 
   function reset() {
@@ -315,20 +375,20 @@ export default function ChatApp({ userName }: { userName: string }) {
         {recentsOpen && <div className="history-list">{filteredConversations.map(item => (
           <div className={`history-row ${item.id === conversationId ? "selected" : ""}`} key={item.id}>
             <button className="history-item" onClick={() => void openConversation(item)} title={item.title}><span className="history-dot"/>{pinnedIds.includes(item.id) && <span className="pinned-mark" title="Pinned">◆</span>}<span className="history-title">{item.title}</span></button>
-            <button className="history-action" aria-label={`Actions for ${item.title}`} title="Conversation actions" onClick={() => setOpenActionId(current => current === item.id ? null : item.id)}>•••</button>
+            <button className="history-action" aria-label={`Actions for ${item.title}`} title="Conversation actions" onClick={() => setOpenActionId(current => current === item.id ? null : item.id)}><ActionIcon name="more"/></button>
             {openActionId === item.id && <><button className="menu-dismiss" aria-label="Close conversation menu" onClick={() => setOpenActionId(null)}/><div className="history-menu">
-              <button onClick={() => void renameConversation(item)}><span>✎</span> Rename</button>
-              <button onClick={() => togglePin(item)}><span>⌖</span> {pinnedIds.includes(item.id) ? "Unpin" : "Pin"}</button>
-              <button onClick={() => void shareConversation(item)}><span>↗</span> Share</button>
-              <button onClick={() => toggleArchive(item)}><span>▣</span> Archive</button>
-              <button className="danger" onClick={() => void deleteConversation(item)}><span>♧</span> Delete</button>
+              <button onClick={() => void renameConversation(item)}><ActionIcon name="edit"/> Rename</button>
+              <button onClick={() => togglePin(item)}><ActionIcon name="pin"/> {pinnedIds.includes(item.id) ? "Unpin" : "Pin"}</button>
+              <button onClick={() => void shareConversation(item)}><ActionIcon name="share"/> Share</button>
+              <button onClick={() => toggleArchive(item)}><ActionIcon name="archive"/> Archive</button>
+              <button className="danger" onClick={() => void deleteConversation(item)}><ActionIcon name="trash"/> Delete</button>
             </div></>}
           </div>
         ))}</div>}
-        {archivedConversations.length > 0 && <><button className="history-heading archived-heading" onClick={() => setArchivedOpen(value => !value)} aria-expanded={archivedOpen}><span><span className="nav-label">ARCHIVED</span><span className="side-count">{archivedConversations.length}</span></span><span className={`section-chevron ${archivedOpen ? "expanded" : ""}`}>⌄</span></button>{archivedOpen && <div className="history-list archived-list">{archivedConversations.map(item => <div className="history-row" key={item.id}><button className="history-item" onClick={() => void openConversation(item)} title={item.title}><span className="history-dot"/><span className="history-title">{item.title}</span></button><button className="history-action" aria-label={`Actions for ${item.title}`} title="Conversation actions" onClick={() => setOpenActionId(current => current === item.id ? null : item.id)}>•••</button>{openActionId === item.id && <div className="history-menu archived-menu"><button onClick={() => toggleArchive(item)}><span>▣</span> Restore to recents</button><button className="danger" onClick={() => void deleteConversation(item)}><span>♧</span> Delete</button></div>}</div>)}</div>}</>}
+        {archivedConversations.length > 0 && <><button className="history-heading archived-heading" onClick={() => setArchivedOpen(value => !value)} aria-expanded={archivedOpen}><span><span className="nav-label">ARCHIVED</span><span className="side-count">{archivedConversations.length}</span></span><span className={`section-chevron ${archivedOpen ? "expanded" : ""}`}>⌄</span></button>{archivedOpen && <div className="history-list archived-list">{archivedConversations.map(item => <div className="history-row" key={item.id}><button className="history-item" onClick={() => void openConversation(item)} title={item.title}><span className="history-dot"/><span className="history-title">{item.title}</span></button><button className="history-action" aria-label={`Actions for ${item.title}`} title="Conversation actions" onClick={() => setOpenActionId(current => current === item.id ? null : item.id)}><ActionIcon name="more"/></button>{openActionId === item.id && <div className="history-menu archived-menu"><button onClick={() => toggleArchive(item)}><ActionIcon name="restore"/> Restore to recents</button><button className="danger" onClick={() => void deleteConversation(item)}><ActionIcon name="trash"/> Delete</button></div>}</div>)}</div>}</>}
         <div className="sidebar-bottom">
           <div className="connection-card"><span className={`connection-indicator ${apiReady ? "online" : apiReady === false ? "offline" : ""}`}/><span><strong>{apiReady ? "Connected" : apiReady === false ? "API key needed" : "Checking setup…"}</strong><small>{apiReady ? "AI is ready" : "Set up your API key"}</small></span><button onClick={() => setSettingsOpen(true)} className="settings-button" aria-label="Connection settings">⚙</button></div>
-          <div className="profile"><div className="avatar">{userName.slice(0, 1).toUpperCase()}</div><div className="profile-copy"><strong>{userName}</strong><small>Private account</small></div><button className="tiny-action" aria-label="Sign out" onClick={() => void authClient.signOut({ fetchOptions: { onSuccess: () => window.location.reload() } })}>↗</button></div>
+          <button className="profile profile-open" onClick={() => { setNameDraft(displayName); setAccountError(""); setAccountNotice(""); setProfileOpen(true); }} aria-label="Open profile and settings"><div className="avatar">{displayName.slice(0, 1).toUpperCase()}</div><span className="profile-copy"><strong>{displayName}</strong><small>Profile & settings</small></span><span className="profile-arrow">↗</span></button>
         </div>
       </aside>
       {sidebarOpen && <button className="sidebar-scrim" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}/>}
@@ -337,7 +397,7 @@ export default function ChatApp({ userName }: { userName: string }) {
         <header className="topbar">
           <button className="sidebar-toggle" onClick={() => { if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(value => !value); else setSidebarCollapsed(value => !value); }} aria-label={sidebarCollapsed ? "Open sidebar" : "Close sidebar"} title={sidebarCollapsed ? "Open sidebar" : "Close sidebar"}>☰</button>
           <span className="topbar-title">Thinkwell</span>
-          <div className="topbar-right"><span className="stream-label"><span/> {imageMode ? "IMAGE MODE" : "READY TO CHAT"}</span><button className="top-icon" onClick={() => setTheme(current => current === "light" ? "dark" : "light")} aria-label="Toggle dark mode" title="Toggle dark mode">{theme === "light" ? "☾" : "☀"}</button></div>
+          <div className="topbar-right"><span className="stream-label"><span/> {imageMode ? "IMAGE MODE" : "READY TO CHAT"}</span><button className="top-icon" onClick={() => changeTheme(theme === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button></div>
         </header>
 
         <section className="conversation" ref={conversation}>
@@ -379,6 +439,25 @@ export default function ChatApp({ userName }: { userName: string }) {
         <footer className="page-footer"><span>MADE FOR THE WAY YOU THINK</span><span>✳&nbsp; TAKE YOUR TIME</span></footer>
       </main>
 
+      {profileOpen && <div className="modal-backdrop open" onClick={() => setProfileOpen(false)}><section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title" onClick={event => event.stopPropagation()}>
+        <button onClick={() => setProfileOpen(false)} className="modal-close" aria-label="Close profile settings">×</button>
+        <div className="profile-modal-heading"><div className="settings-icon">⚙</div><span className="settings-eyebrow">ACCOUNT</span><h2 id="profile-title">Profile & settings</h2><p>Manage your account and appearance.</p></div>
+        <div className="profile-summary"><div className="avatar avatar-large">{displayName.slice(0, 1).toUpperCase()}</div><div><strong>{displayName}</strong><span>{userEmail}</span></div><span className="account-badge">Private</span></div>
+        <form className="account-form" onSubmit={saveName}>
+          <label htmlFor="profile-name">Display name</label>
+          <div className="account-input-row"><input id="profile-name" value={nameDraft} onChange={event => setNameDraft(event.target.value)} maxLength={80} required/><button type="submit" disabled={nameBusy || !nameDraft.trim() || nameDraft.trim() === displayName}>{nameBusy ? "Saving…" : "Save name"}</button></div>
+        </form>
+        <form className="account-form password-form" onSubmit={savePassword}>
+          <div><h3>Update password</h3><p>Choose a new password for your account.</p></div>
+          <label htmlFor="current-password">Current password</label><input id="current-password" name="currentPassword" type="password" autoComplete="current-password" minLength={8} required/>
+          <label htmlFor="new-password">New password</label><input id="new-password" name="newPassword" type="password" autoComplete="new-password" minLength={8} required/>
+          <label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required/>
+          <button className="account-submit" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Update password"}</button>
+        </form>
+        {(accountError || accountNotice) && <p className={`account-feedback ${accountError ? "error" : "success"}`} role="status">{accountError || accountNotice}</p>}
+        <section className="appearance-section"><div><h3>Appearance</h3><p>Choose how Thinkwell looks on this device.</p></div><div className="theme-options" role="group" aria-label="Choose theme"><button className={theme === "light" ? "selected" : ""} aria-pressed={theme === "light"} onClick={() => changeTheme("light")}><span>☼</span> Light</button><button className={theme === "dark" ? "selected" : ""} aria-pressed={theme === "dark"} onClick={() => changeTheme("dark")}><span>☾</span> Dark</button></div></section>
+        <div className="profile-modal-footer"><span>Signed in with a private account</span><button className="signout-button" onClick={() => void authClient.signOut({ fetchOptions: { onSuccess: () => window.location.reload() } })}>Sign out <span>↗</span></button></div>
+      </section></div>}
       {settingsOpen && <div className="modal-backdrop open" onClick={() => setSettingsOpen(false)}><section className="settings-modal" onClick={event => event.stopPropagation()}>
         <button onClick={() => setSettingsOpen(false)} className="modal-close" aria-label="Close">×</button><div className="settings-icon">✳</div><h2>Connect your AI</h2>
         <p className="modal-copy">Your OpenRouter key stays on this server. Keep it in <code>.env.local</code>, never in chat or browser code.</p>

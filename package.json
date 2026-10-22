@@ -2,10 +2,13 @@
   "name": "still-stream-chat",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.15.0"
+  },
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
-    "start": "next start -p 3001",
+    "dev": "node scripts/run-next.mjs dev -p 3001",
+    "build": "node scripts/run-next.mjs build",
+    "start": "node scripts/run-next.mjs start -p 3001",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
