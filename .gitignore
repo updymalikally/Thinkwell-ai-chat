@@ -13,10 +13,3 @@ coverage/
 *.pem
 .DS_Store
 
-echo "# Thinkwell-ai-chat" >> README.md
-git init
-git add .
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/updymalikally/Thinkwell-ai-chat.git
-git push -u origin main
