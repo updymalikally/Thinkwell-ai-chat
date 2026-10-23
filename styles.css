@@ -125,6 +125,8 @@
 :root[data-theme="dark"] .auth-form input{background:#282923;border-color:#41433b;color:#ecebe3}
 :root[data-theme="dark"] .google-submit{background:#282923;border-color:#41433b;color:#e7e6de}
 :root[data-theme="dark"] .google-submit:hover{background:#303129;border-color:#505247}
+:root[data-theme="dark"] .github-submit{background:#282923;border-color:#41433b;color:#e7e6de}
+:root[data-theme="dark"] .github-submit:hover{background:#303129;border-color:#505247}
 :root[data-theme="dark"] .auth-divider{color:#a5a59b}
 :root[data-theme="dark"] .auth-divider::before,:root[data-theme="dark"] .auth-divider::after{background:#393a34}
 :root[data-theme="dark"] .auth-foot{border-color:#393a34}
