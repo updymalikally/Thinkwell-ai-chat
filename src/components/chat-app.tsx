@@ -37,6 +37,18 @@ function ActionIcon({ name }: { name: ActionIconName }) {
   return <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
+type UtilityIconName = "settings" | "sun" | "moon" | "menu";
+
+function UtilityIcon({ name }: { name: UtilityIconName }) {
+  const paths: Record<UtilityIconName, React.ReactNode> = {
+    settings: <><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.8 1.8 0 0 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 0 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 0 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 0 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 0 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 0 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 0 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 0 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z"/></>,
+    sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></>,
+    moon: <path d="M20.2 15.6A8.5 8.5 0 0 1 8.4 3.8 8.5 8.5 0 1 0 20.2 15.6Z"/>,
+    menu: <><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9 4v16"/></>,
+  };
+  return <svg className="utility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}
+
 export default function ChatApp({ userName, userEmail }: { userName: string; userEmail: string }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -387,7 +399,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
         ))}</div>}
         {archivedConversations.length > 0 && <><button className="history-heading archived-heading" onClick={() => setArchivedOpen(value => !value)} aria-expanded={archivedOpen}><span><span className="nav-label">ARCHIVED</span><span className="side-count">{archivedConversations.length}</span></span><span className={`section-chevron ${archivedOpen ? "expanded" : ""}`}>⌄</span></button>{archivedOpen && <div className="history-list archived-list">{archivedConversations.map(item => <div className="history-row" key={item.id}><button className="history-item" onClick={() => void openConversation(item)} title={item.title}><span className="history-dot"/><span className="history-title">{item.title}</span></button><button className="history-action" aria-label={`Actions for ${item.title}`} title="Conversation actions" onClick={() => setOpenActionId(current => current === item.id ? null : item.id)}><ActionIcon name="more"/></button>{openActionId === item.id && <div className="history-menu archived-menu"><button onClick={() => toggleArchive(item)}><ActionIcon name="restore"/> Restore to recents</button><button className="danger" onClick={() => void deleteConversation(item)}><ActionIcon name="trash"/> Delete</button></div>}</div>)}</div>}</>}
         <div className="sidebar-bottom">
-          <div className="connection-card"><span className={`connection-indicator ${apiReady ? "online" : apiReady === false ? "offline" : ""}`}/><span><strong>{apiReady ? "Connected" : apiReady === false ? "API key needed" : "Checking setup…"}</strong><small>{apiReady ? "AI is ready" : "Set up your API key"}</small></span><button onClick={() => setSettingsOpen(true)} className="settings-button" aria-label="Connection settings">⚙</button></div>
+          <div className="connection-card"><span className={`connection-indicator ${apiReady ? "online" : apiReady === false ? "offline" : ""}`}/><span><strong>{apiReady ? "Connected" : apiReady === false ? "API key needed" : "Checking setup…"}</strong><small>{apiReady ? "AI is ready" : "Set up your API key"}</small></span><button onClick={() => setSettingsOpen(true)} className="settings-button" aria-label="Connection settings" title="Connection settings"><UtilityIcon name="settings"/></button></div>
           <button className="profile profile-open" onClick={() => { setNameDraft(displayName); setAccountError(""); setAccountNotice(""); setProfileOpen(true); }} aria-label="Open profile and settings"><div className="avatar">{displayName.slice(0, 1).toUpperCase()}</div><span className="profile-copy"><strong>{displayName}</strong><small>Profile & settings</small></span><span className="profile-arrow">↗</span></button>
         </div>
       </aside>
@@ -395,9 +407,9 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
 
       <main className="main-area">
         <header className="topbar">
-          <button className="sidebar-toggle" onClick={() => { if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(value => !value); else setSidebarCollapsed(value => !value); }} aria-label={sidebarCollapsed ? "Open sidebar" : "Close sidebar"} title={sidebarCollapsed ? "Open sidebar" : "Close sidebar"}>☰</button>
+          <button className="sidebar-toggle" onClick={() => { if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(value => !value); else setSidebarCollapsed(value => !value); }} aria-label={sidebarCollapsed ? "Open sidebar" : "Close sidebar"} title={sidebarCollapsed ? "Open sidebar" : "Close sidebar"}><UtilityIcon name="menu"/></button>
           <span className="topbar-title">Thinkwell</span>
-          <div className="topbar-right"><span className="stream-label"><span/> {imageMode ? "IMAGE MODE" : "READY TO CHAT"}</span><button className="top-icon" onClick={() => changeTheme(theme === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button></div>
+          <div className="topbar-right"><span className="stream-label"><span/> {imageMode ? "IMAGE MODE" : "READY TO CHAT"}</span><button className="top-icon" onClick={() => changeTheme(theme === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><UtilityIcon name={theme === "light" ? "moon" : "sun"}/></button></div>
         </header>
 
         <section className="conversation" ref={conversation}>
@@ -441,7 +453,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
 
       {profileOpen && <div className="modal-backdrop open" onClick={() => setProfileOpen(false)}><section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title" onClick={event => event.stopPropagation()}>
         <button onClick={() => setProfileOpen(false)} className="modal-close" aria-label="Close profile settings">×</button>
-        <div className="profile-modal-heading"><div className="settings-icon">⚙</div><span className="settings-eyebrow">ACCOUNT</span><h2 id="profile-title">Profile & settings</h2><p>Manage your account and appearance.</p></div>
+        <div className="profile-modal-heading"><div className="settings-icon"><UtilityIcon name="settings"/></div><span className="settings-eyebrow">ACCOUNT</span><h2 id="profile-title">Profile & settings</h2><p>Manage your account and appearance.</p></div>
         <div className="profile-summary"><div className="avatar avatar-large">{displayName.slice(0, 1).toUpperCase()}</div><div><strong>{displayName}</strong><span>{userEmail}</span></div><span className="account-badge">Private</span></div>
         <form className="account-form" onSubmit={saveName}>
           <label htmlFor="profile-name">Display name</label>
@@ -455,11 +467,11 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
           <button className="account-submit" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Update password"}</button>
         </form>
         {(accountError || accountNotice) && <p className={`account-feedback ${accountError ? "error" : "success"}`} role="status">{accountError || accountNotice}</p>}
-        <section className="appearance-section"><div><h3>Appearance</h3><p>Choose how Thinkwell looks on this device.</p></div><div className="theme-options" role="group" aria-label="Choose theme"><button className={theme === "light" ? "selected" : ""} aria-pressed={theme === "light"} onClick={() => changeTheme("light")}><span>☼</span> Light</button><button className={theme === "dark" ? "selected" : ""} aria-pressed={theme === "dark"} onClick={() => changeTheme("dark")}><span>☾</span> Dark</button></div></section>
+        <section className="appearance-section"><div><h3>Appearance</h3><p>Choose how Thinkwell looks on this device.</p></div><div className="theme-options" role="group" aria-label="Choose theme"><button className={theme === "light" ? "selected" : ""} aria-pressed={theme === "light"} onClick={() => changeTheme("light")}><UtilityIcon name="sun"/> Light</button><button className={theme === "dark" ? "selected" : ""} aria-pressed={theme === "dark"} onClick={() => changeTheme("dark")}><UtilityIcon name="moon"/> Dark</button></div></section>
         <div className="profile-modal-footer"><span>Signed in with a private account</span><button className="signout-button" onClick={() => void authClient.signOut({ fetchOptions: { onSuccess: () => window.location.reload() } })}>Sign out <span>↗</span></button></div>
       </section></div>}
       {settingsOpen && <div className="modal-backdrop open" onClick={() => setSettingsOpen(false)}><section className="settings-modal" onClick={event => event.stopPropagation()}>
-        <button onClick={() => setSettingsOpen(false)} className="modal-close" aria-label="Close">×</button><div className="settings-icon">✳</div><h2>Connect your AI</h2>
+        <button onClick={() => setSettingsOpen(false)} className="modal-close" aria-label="Close">×</button><div className="settings-icon"><UtilityIcon name="settings"/></div><h2>Connect your AI</h2>
         <p className="modal-copy">Your OpenRouter key stays on this server. Keep it in <code>.env.local</code>, never in chat or browser code.</p>
         <div className="setup-code"><span>OPENAI_API_KEY=</span>your_key_here</div>
         <div className="modal-divider"/>
