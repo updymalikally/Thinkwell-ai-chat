@@ -2,13 +2,13 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { chatMessage, conversation } from "@/lib/schema";
-import { getOpenAIKey } from "@/lib/ai-config";
+import { getChatModelOptions, getOpenAIKey } from "@/lib/ai-config";
 import { and, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ChatInput = { conversationId?: string; messages?: Array<{ role: "user" | "assistant"; content: string }> };
+type ChatInput = { conversationId?: string; messages?: Array<{ role: "user" | "assistant"; content: string }>; model?: string };
 
 async function saveTurn(userId: string, conversationId: string, userText: string, assistantText: string) {
   const userCreatedAt = new Date();
@@ -27,10 +27,12 @@ export async function POST(request: Request) {
 
   let messages: NonNullable<ChatInput["messages"]>;
   let conversationId: string;
+  let requestedModel = "";
   try {
     const body = await request.json() as ChatInput;
-    if (!Array.isArray(body.messages) || !body.messages.length || body.messages.length > 100 || body.messages.some((m) => !["user", "assistant"].includes(m.role) || typeof m.content !== "string" || m.content.length > 20_000)) throw new Error();
+    if (!Array.isArray(body.messages) || !body.messages.length || body.messages.length > 100 || body.messages.some((m) => !["user", "assistant"].includes(m.role) || typeof m.content !== "string" || m.content.length > 20_000) || (body.model !== undefined && (typeof body.model !== "string" || body.model.length > 120))) throw new Error();
     messages = body.messages;
+    requestedModel = body.model || "";
     conversationId = body.conversationId && /^[a-zA-Z0-9_-]{8,80}$/.test(body.conversationId) ? body.conversationId : crypto.randomUUID();
   } catch {
     return Response.json({ error: "Invalid chat messages." }, { status: 400 });
@@ -38,7 +40,8 @@ export async function POST(request: Request) {
 
   const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
   if (!latestUserMessage) return Response.json({ error: "A user message is required." }, { status: 400 });
-  const selectedModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const { defaultModel, models } = getChatModelOptions();
+  const selectedModel = models.includes(requestedModel) ? requestedModel : defaultModel;
 
   const [existingConversation] = await db.select({ id: conversation.id, userId: conversation.userId })
     .from(conversation).where(eq(conversation.id, conversationId)).limit(1);

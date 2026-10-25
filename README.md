@@ -138,6 +138,7 @@ The safe template is [`.env.example`](.env.example). Copy it to `.env.local` for
 | `OPENAI_API_KEY` | For AI features | Server-side API key for the selected AI provider. The example configuration uses OpenRouter. |
 | `OPENAI_BASE_URL` | Optional | Base URL for the AI API. Chat defaults to `https://api.openai.com/v1`; image generation defaults to `https://openrouter.ai/api/v1`. Set this explicitly when your provider needs a particular base URL. |
 | `OPENAI_MODEL` | Optional | Chat model identifier. The code default is `gpt-4o-mini`; `.env.example` provides an OpenRouter-style model ID. |
+| `OPENAI_MODELS` | Optional | Comma-separated chat model IDs to offer in the model picker. The configured `OPENAI_MODEL` is always included. |
 | `OPENAI_IMAGE_MODEL` | Optional | Image model identifier. The code default is `bytedance-seed/seedream-4.5`. |
 
 Model identifiers, endpoint compatibility, available image models, and pricing depend on the provider and account. The app sends chat requests to `<OPENAI_BASE_URL>/chat/completions` and image requests to `<OPENAI_BASE_URL>/images`; choose a provider that supports the endpoint you intend to use.
