@@ -90,6 +90,9 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const conversation = useRef<HTMLDivElement>(null);
+  const [followingLatest, setFollowingLatest] = useState(true);
+  const [hasNewContent, setHasNewContent] = useState(false);
+  const followingLatestRef = useRef(true);
   const speechRecognition = useRef<SpeechRecognitionLike | null>(null);
   const toastTimer = useRef<number | null>(null);
 
@@ -149,7 +152,37 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
     }).catch(() => {});
   }, []);
 
-  useEffect(() => { if (conversation.current) conversation.current.scrollTop = conversation.current.scrollHeight; }, [messages, busy]);
+  useEffect(() => {
+    const viewport = conversation.current;
+    if (!viewport) return;
+    if (!followingLatestRef.current) {
+      if (busy) setHasNewContent(true);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      viewport.scrollTop = viewport.scrollHeight;
+      setHasNewContent(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages, busy]);
+
+  function updateScrollFollowing() {
+    const viewport = conversation.current;
+    if (!viewport) return;
+    const atBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
+    followingLatestRef.current = atBottom;
+    setFollowingLatest(atBottom);
+    if (atBottom) setHasNewContent(false);
+  }
+
+  function scrollToLatest(smooth = true) {
+    const viewport = conversation.current;
+    if (!viewport) return;
+    followingLatestRef.current = true;
+    setFollowingLatest(true);
+    setHasNewContent(false);
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); reset(); }
@@ -202,6 +235,9 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
 
   function reset() {
     if (busy) return;
+    followingLatestRef.current = true;
+    setFollowingLatest(true);
+    setHasNewContent(false);
     setMessages([]);
     setConversationId(null);
     setDraft("");
@@ -217,6 +253,9 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
       const response = await fetch(`/api/chat/history?id=${encodeURIComponent(item.id)}`);
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error || `Could not open that conversation (${response.status}).`);
+      followingLatestRef.current = true;
+      setFollowingLatest(true);
+      setHasNewContent(false);
       setMessages(data.messages.map((message: Message) => ({ role: message.role, content: message.content, id: message.id, feedback: message.feedback })));
       setConversationId(item.id);
       setSidebarOpen(false);
@@ -246,6 +285,9 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
     const useImage = options.forceImage ?? imageMode;
     if (useImage && attachments.length) { notify("Remove text attachments before creating an image."); return; }
     setConversationId(activeConversationId);
+    followingLatestRef.current = true;
+    setFollowingLatest(true);
+    setHasNewContent(false);
     setMessages([...next, { role: "assistant", content: "" }]);
     setDraft("");
     setAttachments([]);
@@ -328,7 +370,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
     setConversations(current => current.filter(entry => entry.id !== item.id));
     setOpenActionId(null);
     setDeleteTarget(null);
-    if (conversationId === item.id) { setMessages([]); setConversationId(null); }
+    if (conversationId === item.id) { followingLatestRef.current = true; setFollowingLatest(true); setHasNewContent(false); setMessages([]); setConversationId(null); }
     notify("Conversation deleted.");
   }
 
@@ -475,7 +517,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
           <div className="topbar-right"><span className="stream-label"><span/> {imageMode ? "IMAGE MODE" : "READY TO CHAT"}</span><button className="top-icon" onClick={() => changeTheme(theme === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`} data-tooltip={`Switch to ${theme === "light" ? "dark" : "light"} mode`} aria-pressed={theme === "dark"}><UtilityIcon name={theme === "light" ? "moon" : "sun"}/></button></div>
         </header>
 
-        <section className="conversation" ref={conversation}>
+        <section className="conversation" ref={conversation} onScroll={updateScrollFollowing}>
           <div className="welcome" hidden={messages.length > 0}>
             <div className="welcome-eyebrow"><span className="eyebrow-line"/> A LITTLE SPACE TO THINK <span className="eyebrow-line"/></div>
             <div className="welcome-mark"><span className="mark-glow"/><i/><i/><i/></div>
@@ -496,6 +538,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
               </div>}
             </div>
           </article>)}</div>
+          {hasNewContent && !followingLatest && <button className="scroll-to-bottom" type="button" onClick={() => scrollToLatest()}><Icon name="chevronDown"/> Scroll to bottom</button>}
         </section>
 
         <div className="composer-wrap">

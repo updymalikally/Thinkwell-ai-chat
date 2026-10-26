@@ -370,6 +370,21 @@ button[data-tooltip]:hover::after,button[data-tooltip]:focus-visible::after{tran
   .welcome>p{margin:7px 0 12px}
 }
 @media(prefers-reduced-motion:reduce){.sidebar,.suggestion,.suggestion-arrow{transition:none}}
+
+/* Keep the chat viewport and composer inside the visible application height. */
+.app-shell{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.main-area{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+.conversation{flex:1 1 0;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}
+.composer-wrap{flex:none;min-height:0}
+.composer textarea{max-height:min(160px,24dvh);overflow-y:auto}
+.scroll-to-bottom{position:sticky;bottom:8px;align-self:center;z-index:3;display:inline-flex;align-items:center;gap:6px;margin-top:-42px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--white);color:var(--ink);box-shadow:0 3px 12px #20201918;font:11px var(--sans);cursor:pointer}
+.scroll-to-bottom .icon{width:13px;height:13px;color:var(--green)}
+@media(max-width:760px){
+  .main-area{min-width:0}
+  .conversation{padding-bottom:18px}
+  .composer-wrap{padding-bottom:calc(7px + env(safe-area-inset-bottom))}
+  .composer textarea{max-height:min(128px,20dvh)}
+}
 .action-dialog{position:relative;width:min(100%,420px);padding:27px;border:1px solid var(--line);border-radius:14px;background:var(--white);color:var(--ink);box-shadow:0 24px 70px #10100c2b;animation:appear .17s ease-out}
 .action-dialog h2{margin:7px 34px 7px 0;color:var(--ink);font:400 25px var(--serif);letter-spacing:-.4px}
 .action-dialog .modal-copy{margin-bottom:16px}
