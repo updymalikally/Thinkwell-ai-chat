@@ -1,4 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;450;500;550;600;650;700&display=swap');
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "streamdown/styles.css";
+@import "katex/dist/katex.min.css";
 @import "../../styles.css";
+
+@source "../../node_modules/streamdown/dist/*.js";
+@source "../../node_modules/@streamdown/code/dist/*.js";
+@source "../../node_modules/@streamdown/mermaid/dist/*.js";
+
+@theme inline {
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-card: var(--white);
+  --color-card-foreground: var(--ink);
+  --color-muted: var(--surface-subtle);
+  --color-muted-foreground: var(--muted);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-primary: var(--green);
+  --color-primary-foreground: #fff;
+  --radius: 0.65rem;
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+}
 
 [hidden] { display: none !important; }
 .auth-page { min-height: 100vh; display: grid; place-items: center; padding: 28px; background: radial-gradient(ellipse at 50% 38%, #f0f1eb 0, #f8f8f5 53%); }

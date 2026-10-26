@@ -527,7 +527,7 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
           </div>
           <div className="messages" aria-live="polite">{messages.map((message, index) => <article className={`message ${message.role}`} key={message.id || `${index}-${message.role}`}>
             {message.role === "assistant" && <div className="message-avatar"><Icon name="sparkle"/></div>}
-            <div className="message-body">{message.content ? message.role === "assistant" ? <MarkdownMessage content={message.content} onCopy={copyText}/> : message.content : busy && index === messages.length - 1 ? <span className="typing-cursor"/> : ""}
+            <div className="message-body">{message.content ? message.role === "assistant" ? <MarkdownMessage content={message.content} isStreaming={busy && index === messages.length - 1}/> : message.content : busy && index === messages.length - 1 ? <span className="typing-cursor"/> : ""}
               {message.imageUrl && <><img className="generated-image" src={message.imageUrl} alt="Image created from your description"/><button className="message-tool" onClick={() => downloadImage(message.imageUrl!, index)}><Icon name="download"/> Save image</button></>}
               {message.role === "assistant" && message.content && !message.imageUrl && <div className="message-tools">
                 <button className="message-tool" onClick={() => void copyText(message.content)} title="Copy response" aria-label="Copy response" data-tooltip="Copy response"><Icon name="copy"/></button>
