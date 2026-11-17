@@ -54,6 +54,9 @@
 .auth-submit span { margin-left: 9px; }
 .auth-switch { margin-top: 19px; color: #89897f; font-size: 11px; }
 .auth-switch button { border: 0; background: transparent; color: #617552; font: 600 11px var(--sans); cursor: pointer; }
+.auth-switch a, .forgot-link { color: #617552; font: 600 11px var(--sans); text-decoration: none; }
+.forgot-link { align-self: flex-end; border: 0; background: transparent; cursor: pointer; }
+.success-note { color: #4e6942; background: #eff4eb; border-radius: 7px; padding: 10px 12px; font-size: 12px; line-height: 1.6; }
 .auth-foot { border-top: 1px solid #ecece6; width: 100%; text-align: center; margin-top: 22px; padding-top: 14px; color: #aaa99f; font-size: 10px; }
 .setup-card { align-items: flex-start; }
 .setup-card .auth-brand { align-self: center; }

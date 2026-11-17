@@ -386,7 +386,6 @@ export default function ChatApp({ userName, userEmail }: { userName: string; use
     setOpenActionId(null);
     setRenameTarget(null);
     notify("Conversation renamed.");
-    notify("Conversation renamed.");
   }
 
   function togglePin(item: ConversationSummary) {
